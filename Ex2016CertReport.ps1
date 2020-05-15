@@ -67,11 +67,14 @@ Write-Host "Version: 0.5" -ForegroundColor Green
 Write-Host "--------------------------------------------------------------" -BackgroundColor DarkGreen
 #endregion
 
-$FileDate = "{0:yyyy_MM_dd-HH_mm}" -f (get-date)
+$FileDate = "{0:yyyy_MM_dd-HH_mm_ss}" -f (get-date)
+
 $ServicesFileName = $ReportPath+"\ExCertReport-"+$FileDate+".html"
 [Void](New-Item -ItemType file $ServicesFileName -Force)
 
-$ExchangeServers = ([adsisearcher]"cn=$ServerFilter*").findall() | %{$_.properties.name} | sort
+[string]$search = "(&(objectcategory=computer)(cn=$serverfilter*))"
+$ExchangeServers = ([adsisearcher]$search).findall() | ForEach-Object{$_.properties.name} | Sort-Object
+
 $ServersList = @()
 $ServersList = $ExchangeServers
 
@@ -239,8 +242,8 @@ foreach ($Server in $ServersList)
             #Collect Certificate Binding information for each server's IIS components
             $scriptblock = {
    
-                $cert=gci -path cert:\localmachine\my | select thumbprint, subject, NotAfter, NotBefore, @{n="sa";e={$_.signaturealgorithm.value}}
-                $web=get-webbinding | select protocol, bindinginformation, certificatehash
+                $cert=Get-ChildItem -path cert:\localmachine\my | Select-Object thumbprint, subject, NotAfter, NotBefore, @{n="sa";e={$_.signaturealgorithm.value}}
+                $web=get-webbinding | Select-Object protocol, bindinginformation, certificatehash
                 foreach ($crt in $cert) {
                 #check if cert is bound to something
                 $wb=$null;$wbp=$null
